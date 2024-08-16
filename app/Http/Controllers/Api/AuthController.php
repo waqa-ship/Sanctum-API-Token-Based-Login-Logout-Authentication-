@@ -15,19 +15,29 @@ class AuthController extends Controller
         $validateUser = Validator::make(
             $request->all(),
             [
-                'title' => 'required',
-                'description' => 'required', // Fixed the email validation rule
-                'image' => 'required|mimes:png,jpg,jpeg,gif', // Fixed the 'mimies' typo to 'mimes'
+                'name' => 'required',
+                'email' => 'required|email|unique:users,email', // Fixed the email validation rule
+                'password' => 'required', // Fixed the 'mimies' typo to 'mimes'
             ]
         );
 
         if ($validateUser->fails()) {
             return response()->json([
                 'status' => 'fail',
-                'message' => "Validation error",
+                'message' => "something must go wrong ",
                 'errors' => $validateUser->errors()->all(),
             ], 401);
         }
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => $request->password
+        ]);
+        return response()->json([
+            'status' => 'true',
+            'message' => "user created successfully",
+            'user' => $user,
+        ], 200);
 
         // Process image upload
         $img = $request->file('image');
@@ -58,7 +68,7 @@ class AuthController extends Controller
                 'password' => 'required',
             ]
         );
-
+    
         // Check if validation fails
         if ($validateUser->fails()) {
             return response()->json([
@@ -67,26 +77,27 @@ class AuthController extends Controller
                 'errors' => $validateUser->errors()->all(),
             ], 404);
         }
-
+    
         // Attempt to log in the user
         if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
             $authUser = Auth::user();
-
+    
             // Return success response with the token
             return response()->json([
                 'status' => 'success',
                 'message' => 'Login successful',
-                'Token' => $authUser->createToken('API token')->plainTextToken,
+                'token' => $authUser->createToken('API token')->plainTextToken,
                 'token_type' => 'bearer',
             ], 200);
         } else {
             // Return failure response if login fails
             return response()->json([
-                'status' => 'fail',
+                'status' => 'failed',
                 'message' => 'Email and password do not match',
             ], 401);
         }
     }
+    
 
     public function logout(Request $request)
     {
@@ -96,6 +107,7 @@ class AuthController extends Controller
         return response()->json([
             'status' => "true",
             'message' => 'Logged out successfully',
+            'user' =>$user
         ], 200);
     }
 }
